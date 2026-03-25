@@ -1,11 +1,14 @@
+import io
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor, BaggingRegressor
-import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import pickle
 from scipy.signal import savgol_filter
 from sklearn.linear_model import LinearRegression
 import matplotlib as mpl
+from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 import os
 import sys
 
@@ -21,9 +24,9 @@ except ImportError:
 mpl.rcParams['path.simplify'] = True
 mpl.rcParams['path.simplify_threshold'] = 1.0
 
-SAVGOL_WINDOW_SIZES = [15, 141, 331, 501]  # Savitzky-Golay 필터 구간별 윈도우 크기 (홀수여야 함)
+SAVGOL_WINDOW_SIZES = [6, 15, 141, 331, 501]  # Savitzky-Golay 필터 구간별 윈도우 크기 (홀수여야 함)
 POLY_ORDER = 5  # Savitzky-Golay 필터 다항식 차수
-split_points = [100, 350, 700]  # 구간을 나누는 지점
+split_points = [50, 100, 350, 700]  # 구간을 나누는 지점
 
 
 def extrapolate_initial_data(intensity, dist, num_points=3, extra_points=1):
@@ -67,7 +70,10 @@ def run(open_filename='C:/yy/OneDrive/gl5_test_sw/log/walk_error/G5091N2z5C012_2
         residue_sample_size=1000,  # 잔차 서브샘플 크기
         std_dev_threshold=30,  # 표준 편차 임계값
         avg_residue_threshold=15,
-        sub_sample=10):  # 평균 잔차 임계값
+        sub_sample=10,  # 평균 잔차 임계값
+        show_plot=False):
+    """show_plot=False: matplotlib.pyplot를 쓰지 않음(다른 모듈/GUI에서 호출 시 plt 상태 유지).
+    show_plot=True: 스크립트 직접 실행처럼 창에 그래프 표시(plt.subplots + plt.show)."""
 
     # pickle 파일에서 데이터 로드
     # with open(file=open_filename, mode='rb') as f:
@@ -100,8 +106,13 @@ def run(open_filename='C:/yy/OneDrive/gl5_test_sw/log/walk_error/G5091N2z5C012_2
     # intensity = np.concatenate((extrapolated_intensity, intensity))
     # dist = np.concatenate((extrapolated_dist, dist))
 
-    # 서브플롯 설정
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(16, 12))  # 화면 비율에 맞게 조정
+    # 호출: Figure만 사용 / 직접 실행(show_plot=True) 시에만 pyplot으로 창 표시
+    if show_plot:
+        import matplotlib.pyplot as plt
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(16, 12))
+    else:
+        fig = Figure(figsize=(16, 12))
+        ax1, ax2, ax3 = fig.subplots(3, 1)
 
     # 첫 번째 서브플롯: 측정된 데이터와 모델 피팅 결과 플로팅
     # 서브샘플링
@@ -129,7 +140,7 @@ def run(open_filename='C:/yy/OneDrive/gl5_test_sw/log/walk_error/G5091N2z5C012_2
 
     # 구간별로 다른 Savitzky-Golay 윈도우 크기 적용
     smoothed_y_fit = np.empty_like(y_fit)
-    start = 1
+    start = 0
 
     for i, end in enumerate(split_points + [len(y_fit)]):
         window_size = SAVGOL_WINDOW_SIZES[i]  # 각 구간에 대한 윈도우 크기 설정
@@ -138,7 +149,7 @@ def run(open_filename='C:/yy/OneDrive/gl5_test_sw/log/walk_error/G5091N2z5C012_2
     smoothed_y_fit = savgol_filter(smoothed_y_fit, 25, POLY_ORDER)
 
     from scipy.ndimage import gaussian_filter
-    smoothed_y_fit = gaussian_filter(smoothed_y_fit, sigma=7)
+    smoothed_y_fit = gaussian_filter(smoothed_y_fit, sigma=1)
 
     # Walk Error Table 저장
     walk_error_table = np.round(smoothed_y_fit - np.min(smoothed_y_fit))
@@ -212,8 +223,8 @@ def run(open_filename='C:/yy/OneDrive/gl5_test_sw/log/walk_error/G5091N2z5C012_2
     bars = ax3.bar(avg_residue['intensity'], avg_residue['avg_residue'], color=['orange' if abs(val) > avg_residue_threshold else 'purple' for val in avg_residue['avg_residue']], width=bar_width, align='center')
     
     # 레전드용 바 추가
-    purple_bar = plt.Line2D([0], [0], color='purple', lw=4, label='Within Threshold')
-    orange_bar = plt.Line2D([0], [0], color='orange', lw=4, label='Exceeds Threshold')
+    purple_bar = Line2D([0], [0], color='purple', lw=4, label='Within Threshold')
+    orange_bar = Line2D([0], [0], color='orange', lw=4, label='Exceeds Threshold')
 
     # 평균 잔차가 임계값을 초과할 때 레이블 추가
     ax3.set_xlim((0, 2000))
@@ -249,21 +260,23 @@ def run(open_filename='C:/yy/OneDrive/gl5_test_sw/log/walk_error/G5091N2z5C012_2
         for _, row in fail_avg_residue.iterrows():
             print(f"Intensity: {row['intensity']}, Avg Residue: {row['avg_residue']}")
 
-    # 그래프를 파일로 저장
-    plt.savefig(walk_error_graph_filename, dpi=300, bbox_inches='tight')  # 그래프를 파일로 저장
-    plt.show()  # 그래프 창 닫기
-    plt.close()  # 그래프 창 닫기
+    # PNG 한 번 렌더 → 파일 저장과 동일한 픽셀로 numpy(BGR) 생성 (캔버스 buffer_rgba / plt 불필요)
+    _png_buf = io.BytesIO()
+    fig.savefig(_png_buf, format='png', dpi=300, bbox_inches='tight')
+    png_bytes = _png_buf.getvalue()
+    with open(walk_error_graph_filename, 'wb') as _f:
+        _f.write(png_bytes)
+    _png_buf.seek(0)
+    _rgba = mpimg.imread(_png_buf)
+    if _rgba.dtype == np.float32 or _rgba.dtype == np.float64:
+        _rgb = np.clip(_rgba[:, :, :3] * 255.0, 0, 255).astype(np.uint8)
+    else:
+        _rgb = _rgba[:, :, :3].astype(np.uint8)
+    walk_error_graph = _rgb[:, :, ::-1]  # RGB → BGR
 
-    # Convert plt figure to numpy array
-    fig.canvas.draw()
-    # buffer_rgba()로 얻은 배열
-    walk_error_graph = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
-    # 그림의 크기
-    width, height = fig.canvas.get_width_height()
-    # 배열 크기를 (width, height, 4)로 변환
-    walk_error_graph = walk_error_graph.reshape((height, width, 4))
-    # 알파 채널을 제외한 RGB 값만 사용하고 BGR로 변환
-    walk_error_graph = walk_error_graph[:, :, [2,1,0]]  # RGB to BGR
+    if show_plot:
+        plt.show(block=True)
+        plt.close(fig)
 
     # 결과를 dict 형태로 구성
     result_dict = {
@@ -297,5 +310,5 @@ def run(open_filename='C:/yy/OneDrive/gl5_test_sw/log/walk_error/G5091N2z5C012_2
 
 
 if __name__ == "__main__":
-    result = run()
+    result = run(show_plot=True)
     print(f"Run result: {result}")
