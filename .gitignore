@@ -1,0 +1,126 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C extensions
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+pip-wheel-metadata/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env/
+.envrc
+.python-version
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+cython_debug/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Profiling / debug
+*.prof
+*.pstats
+
+# Jupyter / Spyder / Rope (local)
+.spyderproject
+.spyproject
+.ropeproject
+
+# IDEs & editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local / Cursor
+.cursor/
+
+# Secrets & local env (never commit)
+.env
+.env.*
+!.env.example
+secrets.json
+
+# --- Runtime outputs, logs, generated artifacts ---
+log/
+log-backup*/
+log-*/
+*.log
+logs/
+
+# Typical script outputs (this project)
+walk_error_table.csv
+walk_error_graph.png
+output_data.zip
+ETEL_Log.txt
+
+# Pickle / joblib dumps often produced at runtime (uncomment if you never track them)
+# *.pickle
+# *.pkl
+# *.joblib
+
+# Temporary Office / editor locks (OneDrive sync)
+~$*
+
+# Data / Office / archives (do not track in repo)
+*.csv
+*.pptx
+*.zip
