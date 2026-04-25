@@ -11,8 +11,8 @@
   },
   "walk_error_lut": {
     "walk_error_stage_dist": [
-      0.0,
-      12.5
+      5.0,
+      17.5
     ],
     "speed_conditions": [
       {
